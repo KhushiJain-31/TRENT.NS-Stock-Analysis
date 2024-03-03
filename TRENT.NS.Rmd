@@ -1,0 +1,340 @@
+---
+title: "Khushi Jain_R Notebook"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*.
+
+```{r}
+# # Required Packages
+packages = c('quantmod','car','forecast','tseries','FinTS', 'rugarch','utf8','ggplot2')
+# 
+# # Install all Packages with Dependencies
+# install.packages(packages, dependencies = TRUE)
+# 
+# # Load all Packages
+lapply(packages, require, character.only = TRUE)
+```
+
+```{r}
+
+getSymbols(Symbols = 'TRENT.NS', 
+           src = 'yahoo', 
+           from = as.Date('2018-01-01'), 
+           to = as.Date('2023-12-31'),
+           periodicity = 'daily')
+
+```
+
+```{r}
+TRENT.NS_price = na.omit(TRENT.NS$TRENT.NS.Adjusted) # Adjusted Closing Price
+View(TRENT.NS_price)
+class(TRENT.NS_price) # xts (Time-Series) Object
+```
+
+```{r}
+TRENT.NS_return = na.omit(diff(log(TRENT.NS_price))); 
+plot(TRENT.NS_return)
+
+```
+
+**Analysis:**
+
+**Objective:**
+
+To analyze the daily returns of TRENT.NS stock from 2018-01-01 to 2023-12-31.
+
+**Analysis:** Extracted the adjusted closing prices of TRENT.NS stock, calculated daily returns, and visualized them.
+
+**Result:**
+
+The 'TRENT.NS_return' plot displays the daily returns of TRENT.NS stock over the specified period. Implication: The plot indicates the volatility and direction of daily returns for ITC stock during the given timeframe. Observations from the plot can help investors understand the historical performance and risk associated with TRENT stock.
+
+```{r}
+#ADF test for Stationery
+
+adf_test_jj = adf.test(TRENT.NS_return);
+adf_test_jj
+```
+
+**Analysis:**
+
+**Objective:**
+
+To conduct an Augmented Dickey-Fuller (ADF) test for stationarity on the daily returns of TRENT.NS stock. Analysis: Performed the ADF test using the 'adf.test' function and obtained results.
+
+**Result:** The Augmented Dickey-Fuller test for stationarity on TRENT.NS daily returns yields the following results: - Dickey-Fuller statistic: -11.293 - Lag order: 11 - p-value: 0.01 - Alternative hypothesis: Stationary
+
+**Implication:** The ADF test suggests that the daily returns of TRENT.NS stock are likely stationary. The small p-value (0.01) indicates evidence against the null hypothesis of non-stationarity. Therefore, we have reason to believe that the TRENT stock returns exhibit stationarity, which is important for certain time series analysis.
+
+**Managerial Implications:**
+
+The finding that the daily returns of TRENT.NS stock are likely stationary suggests they possess a constant mean and variance over time. This is crucial because many forecasting models, like ARIMA (Autoregressive Integrated Moving Average), rely on the assumption of stationarity for accurate predictions.
+
+Therefore, the managerial implication is that the results of the ADF test provide evidence that TRENT stock returns might be suitable for analysis using these types of forecasting models. This could be relevant for:
+
+-   Demand forecasting
+
+-   Risk management
+
+-   Investment decisions
+
+```{r}
+#Autocorrelation test
+# Ljung-Box Test for Autocorrelation
+lb_test_ds = Box.test(TRENT.NS_return); lb_test_ds
+#If autocorrelation exists then autoARIMA
+```
+
+**Analysis:**
+
+**Objective:** To conduct a Ljung-Box test for autocorrelation on the daily returns of TRENT.NS stock.
+
+**Analysis:** The Ljung-Box test was performed using the 'Box.test' function, and the following results were obtained.
+
+**Result:** The Ljung-Box test for autocorrelation on TRENT.NS daily returns produced the following statistics: - X-squared value: 4.2415 - Degrees of freedom: 1 - p-value: 0.03945
+
+**Implication**: The results of the Ljung-Box test suggest significant autocorrelation in the daily returns of TRENT.NS stock. The obtained p-value of 0.03945 indicates evidence against the null hypothesis of no autocorrelation. The interpretation indicates that there is significant autocorrelation in the daily returns of TRENT.NS stock. The obtained p-value of 0.03945 is less than the common significance level of 0.05, providing evidence against the null hypothesis of no autocorrelation.
+
+**Action:** Given the presence of autocorrelation, it may be advisable to explore time series forecasting models. Consideration of an autoARIMA model could be beneficial, as it automatically selects an appropriate ARIMA model with differencing to address observed autocorrelation patterns.
+
+```{r}
+#ACF and PCF
+
+acf(TRENT.NS_price) # ACF of JJ Series
+pacf(TRENT.NS_price) # PACF of JJ Series
+
+acf(TRENT.NS_return) # ACF of JJ Difference (Stationary) Series
+pacf(TRENT.NS_return) # PACF of JJ Difference (Stationary) Series
+
+
+```
+
+```{r}
+#AutoArima
+arma_pq_ds = auto.arima(TRENT.NS_return); arma_pq_ds
+
+```
+
+```{r}
+arma_pq = auto.arima(TRENT.NS_price); arma_pq
+```
+
+**Analysis:**
+
+**Objective:** To perform autoARIMA modeling on the daily returns ('TRENT.NS_return') and adjusted closing prices ('TRENT.NS_price') of TRENT.NS stock.
+
+**Analysis:** The 'auto.arima' function was employed to automatically select the ARIMA model for both returns and prices.The autoARIMA models equip managers with tools for proactive decision-making, risk management, and staying attuned to market dynamics.
+
+**The results are as follows:**
+
+**For Daily Returns ('TRENT.NS_return'):** The autoARIMA model suggests an ARIMA(0,0,1) with a non-zero mean. Coefficients: - Moving Average (MA): ma1 = 0.0559 - Mean: mean = 0.0015 Standard Errors: - SE (Standard Error) for ma1: 0.0265 - SE for mean: 0.0006 Variance (sigma\^2): 0.0005105 Log likelihood: 3510.22 Model Evaluation: - AIC = -7014.44 - AICc = -7014.43 - BIC = -6998.54
+
+**For Adjusted Closing Prices ('TRENT.NS_price'):** The autoARIMA model suggests an ARIMA(1,2,1). Coefficients: - Autoregressive (AR): ar1 = 0.0679 - Moving Average (MA): ma1 = -0.9891 Standard Errors: - SE for ar1: 0.0263 - SE for ma1: 0.0045 Variance (sigma\^2): 399.2, Log likelihood: -6528.64, Model Evaluation: - AIC = 13063.29 - AICc = 13063.3 - BIC = 13079.19
+
+**Implication:** The autoARIMA models provide a statistical framework to capture the underlying patterns in both daily returns and adjusted closing prices of TRENT.NS stock. These models can be utilized for forecasting future values. The AIC, AICc, and BIC values offer insights for model comparison.
+
+**Note:** Interpretation of the coefficients and model selection details may require further analysis based on the specific context of the financial data.
+
+```{r}
+#Arima manuplation
+arma13 = arima(TRENT.NS_return, order = c(0, 0, 1)); arma13
+```
+
+```{r}
+ds_fpq = forecast(arma13, h = 1000)
+plot(ds_fpq)
+```
+
+**Analysis:**
+
+**Objective:** To fit an ARIMA(0, 0, 1) model to the daily returns ('TRENT.NS_return') of TRENT.NS stock and generate forecasts.
+
+**Analysis:** Employed the 'arima' function to fit the ARIMA model and utilized the 'forecast' function to generate forecasts. The results for the ARIMA(0, 0, 1) model are as follows:
+
+**ARIMA Model (0, 0, 1):** Coefficients: - Moving Average (MA): ma1 = 0.0559 - Intercept term: intercept = 0.0015 Standard Errors: - SE for ma1: 0.0265 - SE for intercept: 0.0006 Variance (sigma\^2) estimated as 0.0005098 Log likelihood: 3510.22 AIC: -7014.44
+
+**Forecasting:** Generated forecasts for the next 1000 time points using the fitted ARIMA model.
+
+**Plot:** The plot illustrates the original time series of daily returns alongside the forecasted values.
+
+**Implication:** The ARIMA(0, 0, 1) model is fitted to the historical daily returns of TRENT.NS stock, offering insights into the underlying patterns. The forecasts generated by the model can be utilized for future predictions. The accompanying plot provides a visual representation of the model's performance.\
+\
+**Besides improved forecasting, the model offers:**
+
+-   Scenario planning: Use forecasts to explore "what-if" scenarios for future performance and develop contingency plans.
+
+-   Resource allocation: Make informed decisions about resource allocation based on potential future outcomes.
+
+-   Benchmarking: Compare actual performance against forecasts to evaluate effectiveness and identify areas for improvement.
+
+**Note:** Interpretation of coefficients and model evaluation details may require further analysis based on the specific context of the financial data.
+
+```{r}
+#Autocorrelation test
+# Ljung-Box Test for Autocorrelation
+lb_test_ds_A = Box.test(arma13$residuals); lb_test_ds_A
+#After this no autocorrelation exists
+
+```
+
+**Analysis:**
+
+Objective: To conduct a Ljung-Box test for autocorrelation on the residuals of the ARIMA(0, 0, 1) model.
+
+**Analysis:** Utilized the 'Box.test' function to perform the Ljung-Box test on the residuals of the ARIMA model.
+
+**Results:**
+
+Ljung-Box Test for Autocorrelation on Residuals: - X-squared statistic: 0.0018591 - Degrees of freedom: 1 - p-value: 0.9656
+
+**Implication:** The Ljung-Box test results indicate no significant autocorrelation in the residuals of the ARIMA(0, 0, 1) model. The obtained p-value of 0.9656 suggests that there is no substantial evidence against the null hypothesis of no autocorrelation.
+
+**Action:** The absence of autocorrelation in residuals suggests that the ARIMA(0, 0, 1) model adequately captures the temporal patterns in the time series of TRENT.NS_return. This implies that the model's predictions are reliable and can be used for forecasting future values.\
+The lack of autocorrelation in residuals suggests the ARIMA model effectively captures the data patterns, potentially leading to more reliable forecasts for future use by managers.
+
+**Note:** Interpretation of results and model adequacy may vary depending on the specific characteristics and context of the financial data being analyzed.
+
+```{r}
+# Test for Volatility Clustering or Heteroskedasticity: Box Test 
+stk_ret_sq = arma13$residuals^2 # Return Variance (Since Mean Returns is approx. 0)
+plot(stk_ret_sq)
+```
+
+```{r}
+stk_ret_sq_box_test = Box.test(stk_ret_sq, lag = 11) # H0: Return Variance Series is Not Serially Correlated
+stk_ret_sq_box_test # Inference : Return Variance Series is Heteroskedastic (Has Volatility Clustering)
+
+```
+
+```{r}
+# Test for Volatility Clustering or Heteroskedasticity: ARCH Test
+stk_ret_arch_test = ArchTest(arma13$residuals, lags = 11) # H0: No ARCH Effects
+stk_ret_arch_test # Inference : Return Series is Heteroskedastic (Has Volatility Clustering)
+```
+
+**Analysis:**
+
+**Objective:** To assess the presence of volatility clustering or heteroskedasticity in the squared residuals of the time series data.
+
+**Analysis:** Conducted the Box test and ARCH test on the squared residuals to evaluate the volatility clustering characteristics.
+
+**Results:**
+
+Box Test for Volatility Clustering: - X-squared statistic: 268.37 - Degrees of freedom: 11 - p-value: \< 2.2e-16
+
+**Inference:** The Box test results indicate significant evidence against the null hypothesis, suggesting that the squared residuals exhibit volatility clustering or heteroskedasticity.
+
+ARCH Test for Volatility Clustering: - Chi-squared statistic: 166.83 - Degrees of freedom: 11 - p-value: \< 2.2e-16
+
+**Inference:** The ARCH test provides strong evidence against the null hypothesis, supporting the presence of ARCH effects in the squared residuals. This implies that the squared residuals have volatility clustering.
+
+**Implication:** Both the Box test and ARCH test consistently suggest that the squared residuals exhibit volatility clustering or heteroskedasticity. Understanding and accounting for this pattern in volatility is crucial for risk management and accurate forecasting.\
+\
+The analysis reveals volatility clustering, meaning the data exhibits fluctuating volatility. While the standard ARIMA model is still usable, this suggests managers might need to consider more advanced models like GARCH to:
+
+-   Improve risk management: Get a more accurate assessment of future risks.
+
+-   Enhance forecasting accuracy: Potentially lead to more reliable forecasts.
+
+**Note:** Interpretation may vary based on the specific context of the financial data and the assumptions underlying the time series analysis.
+
+```{r}
+#Garch model
+garch_model1 = ugarchspec(variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(0,0), include.mean = TRUE))
+nse_ret_garch1 = ugarchfit(garch_model1, data = arma13$residuals); nse_ret_garch1
+
+```
+
+```{r}
+garch_model2 = ugarchspec(variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(4,5), include.mean = FALSE))
+nse_ret_garch2 = ugarchfit(garch_model2, data = arma13$residuals); nse_ret_garch2
+
+```
+
+```{r}
+# Test for Volatility Clustering or Heteroskedasticity: ARCH Test
+gar_resd = residuals(nse_ret_garch2)^2
+stk_ret_arch_test1 = ArchTest(gar_resd, lags = 1) # H0: No ARCH Effects
+stk_ret_arch_test1 # Inference : Return Series is Heteroskedastic (Has Volatility Clustering)
+```
+
+**Analysis:**
+
+Objective: To fit GARCH models to the residuals of the ARIMA(0, 0, 1) model and test for volatility clustering.
+
+Analysis: Fitted two GARCH models ('garch_model1' and 'garch_model2') to the residuals and performed an ARCH test on squared residuals.
+
+**Results:**
+
+**GARCH Model 1:** - GARCH Model: sGARCH(1,1) with ARFIMA(0,0,0) mean. - Optimal Parameters: - Mean (mu): 0.000034 - Omega: 0.000023 - Alpha1: 0.068655 - Beta1: 0.883157 - Log likelihood: 3617.678 - Weighted Ljung-Box Test on Standardized Residuals and Squared Residuals show significant autocorrelation. - Weighted ARCH LM Tests indicate evidence of ARCH effects.
+
+**GARCH Model 2:** - GARCH Model: sGARCH(1,1) with ARFIMA(4,0,5) mean. - Optimal Parameters are similar to Model 1. - Log likelihood: 3623.823 - Weighted Ljung-Box Test and Weighted ARCH LM Tests show evidence of autocorrelation and ARCH effects.
+
+**ARCH Test on Squared Residuals:** - Lag[1] statistic: 0.16048 - Degrees of freedom: 1 - p-value: 0.6887
+
+Inference: The ARCH test does not provide significant evidence against the null hypothesis, suggesting no presence of volatility clustering in the squared residuals.
+
+Implication: Both GARCH models suggest that the residuals exhibit volatility clustering, as indicated by the Weighted Ljung-Box Test and Weighted ARCH LM Tests. However, the ARCH Test on Squared Residuals does not confirm volatility clustering in the squared residuals.
+
+-   The fitted GARCH models (GARCH Model 1 and GARCH Model 2) suggest the presence of volatility clustering in the residuals.
+
+-   Volatility clustering implies that periods of high volatility tend to cluster together, which can be crucial information for risk management.
+
+-   The similarity in optimal parameters between GARCH Model 1 and GARCH Model 2 suggests that the inclusion of ARFIMA terms in the mean model may not significantly alter volatility predictions.
+
+Note: Interpretation may vary based on the specific context of the financial data and the assumptions underlying the time series analysis.
+
+```{r}
+garch_modelf = ugarchspec(variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(0,1), include.mean = FALSE))
+stk_ret_garch = ugarchfit(garch_modelf, data = TRENT.NS_return); stk_ret_garch
+```
+
+**Analysis:**
+
+**Objective:** To fit a GARCH(1,1) model with an ARFIMA(0,0,1) mean to the daily returns of the given financial data and assess the goodness-of-fit using the Adjusted Pearson Goodness-of-Fit Test.
+
+**Analysis:** Utilized the 'ugarchspec' and 'ugarchfit' functions to fit the GARCH model and conducted the Adjusted Pearson Goodness-of-Fit Test.
+
+**Results:**
+
+**GARCH Model:** - GARCH Model: sGARCH(1,1) with ARFIMA(0,0,1) mean. - Optimal Parameters (Not provided in the output).
+
+**Adjusted Pearson Goodness-of-Fit Test:** - The test was performed for different group sizes (20, 30, 40, and 50). - For each group size, the test statistic and p-value were calculated. - All p-values are extremely low (e.g., 3.193e-60), indicating strong evidence against the null hypothesis of a good fit.
+
+**Implication:** The Adjusted Pearson Goodness-of-Fit Test suggests that the fitted GARCH(1,1) model with an ARFIMA(0,0,1) mean may not provide a good fit to the observed daily returns of the financial data. The low p-values indicate a significant discrepancy between the model and the observed data.
+
+**Note:** Interpretation may vary based on the specific context of the financial data and the assumptions underlying the time series analysis.
+
+This analysis signals caution in relying on the current GARCH model for forecasting and risk management. The model's poor fit to the observed data, as indicated by the extremely low p-values, implies that it may not accurately capture the underlying dynamics of the financial time series. Managers and analysts should explore alternative models or parameter adjustments to enhance the model's performance and ensure more reliable predictions.
+
+```{r}
+# GARCH Forecast
+stk_ret_garch_forecast1 = ugarchforecast(stk_ret_garch, n.ahead = 50); stk_ret_garch_forecast1
+```
+
+**Analysis:**
+
+**Objective:** To forecast volatility using the fitted GARCH model for the next 50 time points.
+
+**Analysis:** Employed the 'ugarchforecast' function to generate volatility forecasts for the subsequent 50 time points.
+
+**Results:**
+
+**GARCH Model Forecast:** - Model: sGARCH - Horizon: 50 - Roll Steps: 0 - Out of Sample: 0
+
+**0-roll forecast [T0=2022-03-02]:** - Forecasted Series: - T+1 to T+50: Contains forecasted values of volatility (Sigma) for each time point.
+
+**Implication:** The forecasted values represent the predicted volatility for the next 50 time points based on the fitted GARCH model. These forecasts can be valuable for risk management and decision-making, providing insights into the expected future volatility of the financial time series. Monitoring and understanding these forecasts can aid in making informed decisions regarding investment strategies and risk mitigation.\
+\
+The forecasts offer a potential view of future volatility, it's crucial to acknowledge their limitations and integrate them with other information for sound decision-making.
+
+In conclusion, the GARCH model's volatility forecasts serve as a valuable tool for managerial decision-making, enabling proactive risk management, strategic adjustments, and improved overall financial decision outcomes.
+
+```{r}
+plot(stk_ret_garch_forecast1)
+```
