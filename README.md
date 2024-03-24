@@ -4,8 +4,8 @@ This repository contains the code and documentation for analyzing time series da
 
 Files:
 
-1. TRENT.NS.Rmd: This R Markdown file encompasses the code and detailed steps of the analysis.
+1. TRENT_Time Series Analysis.Rmd: This R Markdown file encompasses the code and detailed steps of the analysis.
 
-2. TRENT.NS.nb.html: An HTML file is generated from the R Markdown file, facilitating easy online viewing.
+2. TRENT_Time Series Analysis.n.html: An HTML file is generated from the R Markdown file, facilitating easy online viewing.
 
-3. TRENT.NS_Analysis.pdf: This PDF file provides a printable version of the analysis report.
+3. TRENT_Time Series Analysis.pdf: This PDF file provides a printable version of the analysis report.
